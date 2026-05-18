@@ -63,6 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastFetchedHandles = "";
     let lastFetchedPlatform = "";
 
+    let lastProblemHandles = "";
+    let autoFilledCfMin = null;
+    let autoFilledCfMax = null;
+
+    let lastAcProblemHandles = "";
+    let autoFilledAcMin = null;
+    let autoFilledAcMax = null;
+
     function getSelectedPlatform() {
         for (const radio of platformRadios) {
             if (radio.checked) return radio.value;
@@ -709,9 +717,65 @@ document.addEventListener('DOMContentLoaded', () => {
             if (platform === 'codeforces' || platform === 'both') {
                 const cfHandles = cfHandlesStr.split(',').map(h => h.trim()).filter(h => h);
                 if (cfHandles.length > 0) {
-                    let cfMin = parseInt(cfMinRating.value);
+                    let cfMinStr = cfMinRating.value.trim();
+                    let cfMaxStr = cfMaxRating.value.trim();
+                    let cfMin = parseInt(cfMinStr);
+                    let cfMax = parseInt(cfMaxStr);
+
+                    const isAutoFilledMatch = (cfMin === autoFilledCfMin && cfMax === autoFilledCfMax && autoFilledCfMin !== null);
+                    const handlesChanged = (cfHandlesStr !== lastProblemHandles);
+
+                    if ((!cfMinStr && !cfMaxStr) || (isAutoFilledMatch && handlesChanged)) {
+                        try {
+                            loaderText.textContent = `Fetching CF ratings...`;
+                            const res = await fetch(`https://codeforces.com/api/user.info?handles=${cfHandles.join(';')}`);
+                            const data = await res.json();
+                            if (data.status === 'OK') {
+                                let calculatedMin = Infinity;
+                                let calculatedMax = -Infinity;
+                                data.result.forEach(u => {
+                                    if (u.rating !== undefined && u.maxRating !== undefined) {
+                                        let currentUpper = Math.ceil(u.rating / 100) * 100;
+                                        let maxUpper = Math.ceil(u.maxRating / 100) * 100;
+                                        calculatedMin = Math.min(calculatedMin, currentUpper);
+                                        calculatedMax = Math.max(calculatedMax, maxUpper);
+                                    }
+                                });
+                                if (calculatedMin !== Infinity && calculatedMax !== -Infinity) {
+                                    if (calculatedMin < 800) {
+                                        calculatedMin = 800;
+                                        calculatedMax = Math.max(calculatedMax, 900);
+                                    }
+                                    cfMin = calculatedMin;
+                                    cfMax = calculatedMax;
+                                    
+                                    if (cfMin === cfMax) {
+                                        cfMax += 100;
+                                    }
+                                    
+                                    cfMinRating.value = cfMin;
+                                    cfMaxRating.value = cfMax;
+                                    
+                                    autoFilledCfMin = cfMin;
+                                    autoFilledCfMax = cfMax;
+                                } else {
+                                    autoFilledCfMin = null;
+                                    autoFilledCfMax = null;
+                                }
+                            }
+                        } catch(e) {
+                            console.error("Failed to fetch user info for rating range auto-fill", e);
+                        }
+                    } else if (!isAutoFilledMatch) {
+                        autoFilledCfMin = null;
+                        autoFilledCfMax = null;
+                    }
+
+                    lastProblemHandles = cfHandlesStr;
+
                     cfMin = isNaN(cfMin) ? 800 : Math.max(800, cfMin);
-                    const cfMax = parseInt(cfMaxRating.value) || 3500;
+                    cfMax = isNaN(cfMax) ? 3500 : cfMax;
+                    
                     await fetchCodeforcesProblemsList(cfHandles, cutoffTime, cfMin, cfMax, platform === 'both' ? Math.ceil(count/2) : count);
                 }
             }
@@ -719,9 +783,68 @@ document.addEventListener('DOMContentLoaded', () => {
             if (platform === 'atcoder' || platform === 'both') {
                 const acHandles = acHandlesStr.split(',').map(h => h.trim()).filter(h => h);
                 if (acHandles.length > 0) {
-                    let acMin = parseInt(acMinDifficulty.value);
+                    let acMinStr = acMinDifficulty.value.trim();
+                    let acMaxStr = acMaxDifficulty.value.trim();
+                    let acMin = parseInt(acMinStr);
+                    let acMax = parseInt(acMaxStr);
+
+                    const isAutoFilledMatch = (acMin === autoFilledAcMin && acMax === autoFilledAcMax && autoFilledAcMin !== null);
+                    const handlesChanged = (acHandlesStr !== lastAcProblemHandles);
+
+                    if ((!acMinStr && !acMaxStr) || (isAutoFilledMatch && handlesChanged)) {
+                        try {
+                            loaderText.textContent = `Fetching AtCoder ratings...`;
+                            let calculatedMin = Infinity;
+                            let calculatedMax = -Infinity;
+                            
+                            for (const handle of acHandles) {
+                                const res = await fetch(`https://api.codetabs.com/v1/proxy/?quest=https://atcoder.jp/users/${handle}/history/json`);
+                                if (res.ok) {
+                                    const history = await res.json();
+                                    if (Array.isArray(history) && history.length > 0) {
+                                        const currentRating = history[history.length - 1].NewRating;
+                                        let userMax = 0;
+                                        history.forEach(c => {
+                                            if (c.NewRating > userMax) userMax = c.NewRating;
+                                        });
+                                        
+                                        if (currentRating > 0 && userMax > 0) {
+                                            calculatedMin = Math.min(calculatedMin, Math.ceil(currentRating / 100) * 100);
+                                            calculatedMax = Math.max(calculatedMax, Math.ceil(userMax / 100) * 100);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (calculatedMin !== Infinity && calculatedMax !== -Infinity) {
+                                acMin = calculatedMin;
+                                acMax = calculatedMax;
+                                if (acMin === acMax) {
+                                    acMax += 100;
+                                }
+                            } else {
+                                acMin = 100;
+                                acMax = 200;
+                            }
+                            
+                            acMinDifficulty.value = acMin;
+                            acMaxDifficulty.value = acMax;
+                            
+                            autoFilledAcMin = acMin;
+                            autoFilledAcMax = acMax;
+                        } catch(e) {
+                            console.error("Failed to fetch AtCoder user info for auto-fill", e);
+                        }
+                    } else if (!isAutoFilledMatch) {
+                        autoFilledAcMin = null;
+                        autoFilledAcMax = null;
+                    }
+
+                    lastAcProblemHandles = acHandlesStr;
+
                     acMin = isNaN(acMin) ? 100 : Math.max(100, acMin);
-                    const acMax = parseInt(acMaxDifficulty.value) || 4000;
+                    acMax = isNaN(acMax) ? 4000 : acMax;
+                    
                     await fetchAtcoderProblemsList(acHandles, cutoffTime, acMin, acMax, platform === 'both' ? Math.floor(count/2) : count);
                 }
             }
