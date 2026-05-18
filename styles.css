@@ -61,6 +61,38 @@ body {
     padding: 2.5rem;
     position: relative;
     overflow: hidden;
+    z-index: 1;
+}
+
+/* Glass Panel Decorative Circles */
+.sidebar.glass-panel::before,
+.hero-section.glass-panel::before,
+.history-section.glass-panel::before,
+.problems-section.glass-panel::before {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    right: -100px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    opacity: 0.04;
+    z-index: -1;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+.sidebar.glass-panel::before { background: var(--accent-1); }
+.hero-section.glass-panel::before { background: var(--accent-2); }
+.history-section.glass-panel::before { background: #14b8a6; }
+.problems-section.glass-panel::before { background: #10b981; }
+
+.sidebar.glass-panel:hover::before,
+.hero-section.glass-panel:hover::before,
+.history-section.glass-panel:hover::before,
+.problems-section.glass-panel:hover::before {
+    transform: scale(1.15);
+    opacity: 0.08;
 }
 
 /* Sidebar */
