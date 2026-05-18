@@ -16,9 +16,8 @@ Open `index.html` in your browser.
 ### 🚀 [HappyKoding](https://www.youtube.com/@happykoding07)
 *Let's learn, build, and grow together!*
 
-### 👤 Contact
-- [Facebook Profile](https://www.facebook.com/tasnim.ahmed.20)
-- [Codeforces Profile](https://codeforces.com/profile/tasnim07)
+### 🤝 Let's Connect
+[Facebook Profile](https://www.facebook.com/tasnim.ahmed.20) | [Codeforces Profile](https://codeforces.com/profile/tasnim07)
 
 ## License
 MIT
