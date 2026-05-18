@@ -1,6 +1,6 @@
 # SyncForge
 
-Find unsolved contests and problems from Codeforces and AtCoder instantly. [Live Site](https://anup-barman.github.io/SyncForge/)
+Find unsolved contests and problems from Codeforces and AtCoder instantly. [Live Site](https://syncforge-app.vercel.app/)
 
 ## Features
 - **Contest Generator**: Randomly selects unsolved contests (Codeforces/AtCoder) based on your filters.
