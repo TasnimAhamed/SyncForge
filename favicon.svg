@@ -1,22 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
+    <!-- Background -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:1" />
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
     </linearGradient>
-    <linearGradient id="arrow" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#38bdf8;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:1" />
+
+    <!-- Forge Gradient -->
+    <linearGradient id="forge" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#f97316"/>
     </linearGradient>
+
+    <!-- Sync Gradient -->
+    <linearGradient id="sync" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+
+    <!-- Inner filter for 3D overlap -->
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
   </defs>
-  <!-- Rounded square background -->
+
   <rect width="100" height="100" rx="22" fill="url(#bg)" />
-  <!-- Stylized "S" formed by two syncing arrows -->
-  <path d="M62 28 L38 28 Q26 28 26 40 Q26 50 38 50 L62 50 Q74 50 74 62 Q74 72 62 72 L38 72" 
-        stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-  <!-- Top arrow head (pointing right) -->
-  <path d="M56 20 L64 28 L56 36" stroke="url(#arrow)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-  <!-- Bottom arrow head (pointing left) -->
-  <path d="M44 64 L36 72 L44 80" stroke="url(#arrow)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+  <g transform="translate(20, 20) scale(0.6)">
+    
+    <!-- Left Stem (Sync) -->
+    <!-- Drawn first so it is underneath -->
+    <path d="M 0 100 L 0 25" 
+          stroke="url(#sync)" stroke-width="20" stroke-linecap="round" fill="none"/>
+
+    <!-- Middle Bar (Forge) -->
+    <!-- Goes from 0 50 to 50 50 -->
+    <path d="M 0 50 L 50 50" 
+          stroke="url(#forge)" stroke-width="20" stroke-linecap="round" fill="none" filter="url(#shadow)"/>
+
+    <!-- Top Curve & Bar (Forge) -->
+    <path d="M 0 25 A 25 25 0 0 1 25 0 L 100 0" 
+          stroke="url(#forge)" stroke-width="20" stroke-linecap="round" fill="none" filter="url(#shadow)"/>
+
+    <!-- Bottom S-Curve (Sync) -->
+    <!-- Starts at 20 50 (overlapping middle bar) -->
+    <path d="M 20 50 L 75 50 A 25 25 0 0 1 75 100 L 25 100 A 25 25 0 0 1 0 75" 
+          stroke="url(#sync)" stroke-width="20" stroke-linecap="round" fill="none" filter="url(#shadow)"/>
+          
+    <!-- Core Spark -->
+    <rect x="40" y="65" width="20" height="20" rx="6" transform="rotate(45 50 75)" fill="url(#forge)" filter="url(#shadow)" />
+          
+  </g>
 </svg>
