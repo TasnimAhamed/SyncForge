@@ -8,10 +8,16 @@ Find unsolved contests and problems from Codeforces and AtCoder instantly. [Live
 
 ## Quick Start
 ```bash
-git clone https://github.com/anup-barman/Random-Contest-Generator.git
-cd Random-Contest-Generator
+git clone https://github.com/TasnimAhamed/SyncForge.git
+cd SyncForge
 ```
 Open `index.html` in your browser.
+
+### 🚀 [HappyKoding](https://www.youtube.com/@happykoding07)
+*Let's learn, build, and grow together!*
+
+### 👤 Contact
+[Facebook Profile](https://www.facebook.com/tasnim.ahmed.20)
 
 ## License
 MIT
