@@ -71,6 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let autoFilledAcMin = null;
     let autoFilledAcMax = null;
 
+    const profileCache = {
+        codeforces: {},
+        atcoder: {}
+    };
+
     function getSelectedPlatform() {
         for (const radio of platformRadios) {
             if (radio.checked) return radio.value;
@@ -145,12 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleInputAc.classList.remove('hidden');
             }
             
-            // Trigger profile fetch again if handle is present
-            const currentHandle = platform === 'atcoder' ? handleInputAc.value.trim() : handleInput.value.trim();
-            if (currentHandle !== '') {
-                lastFetchedHandles = ""; // force fetch
-                fetchUserProfiles();
-            }
+            // Trigger profile fetch again to update or hide profiles
+            lastFetchedHandles = ""; // force fetch
+            fetchUserProfiles();
         });
     });
 
@@ -220,92 +222,160 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchUserProfiles() {
         const platform = getSelectedPlatform();
-        let handleString = handleInput.value.trim();
-        if (platform === 'atcoder') {
-            handleString = handleInputAc.value.trim();
-        }
+        const cfHandleString = handleInput.value.trim();
+        const acHandleString = handleInputAc.value.trim();
         
-        if (!handleString) {
+        let combinedString = "";
+        if (platform === 'codeforces') combinedString = cfHandleString;
+        else if (platform === 'atcoder') combinedString = acHandleString;
+        else combinedString = cfHandleString + "|" + acHandleString;
+
+        const shouldFetchCf = (platform === 'codeforces' || platform === 'both') && cfHandleString;
+        const shouldFetchAc = (platform === 'atcoder' || platform === 'both') && acHandleString;
+
+        if (!shouldFetchCf && !shouldFetchAc) {
             userProfilesContainer.classList.add('hidden');
             userProfilesContainer.innerHTML = '';
             lastFetchedHandles = "";
             return;
         }
 
-        if (handleString === lastFetchedHandles && platform === lastFetchedPlatform) return;
-        lastFetchedHandles = handleString;
+        if (combinedString === lastFetchedHandles && platform === lastFetchedPlatform) return;
+        lastFetchedHandles = combinedString;
         lastFetchedPlatform = platform;
 
         userProfilesContainer.innerHTML = '';
+        userProfilesContainer.classList.remove('hidden');
 
-        if (platform === 'codeforces') {
-            const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
-            try {
-                const res = await fetch(`https://codeforces.com/api/user.info?handles=${handles.join(';')}`);
-                const contentType = res.headers.get("content-type");
-                if (contentType && contentType.includes("application/json")) {
-                    const data = await res.json();
-                    if (data.status === 'OK') renderCodeforcesProfiles(data.result);
-                    else userProfilesContainer.classList.add('hidden');
-                } else {
-                    userProfilesContainer.classList.add('hidden');
-                }
-            } catch(err) { /* ignore */ }
-        } else {
-             const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
-             if (handles.length > 0) {
-                 renderGenericProfiles(handles);
-             } else {
-                 userProfilesContainer.classList.add('hidden');
-             }
+        let promises = [];
+
+        if (shouldFetchCf) {
+            const handles = cfHandleString.split(',').map(h => h.trim()).filter(h => h);
+            const uncachedHandles = handles.filter(h => !profileCache.codeforces[h.toLowerCase()]);
+            
+            let fetchPromise = Promise.resolve();
+            if (uncachedHandles.length > 0) {
+                fetchPromise = fetch(`https://codeforces.com/api/user.info?handles=${uncachedHandles.join(';')}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'OK') {
+                            data.result.forEach(user => {
+                                profileCache.codeforces[user.handle.toLowerCase()] = user;
+                            });
+                        }
+                    }).catch(e => console.error(e));
+            }
+
+            promises.push(fetchPromise.then(() => {
+                handles.forEach(handle => {
+                    const user = profileCache.codeforces[handle.toLowerCase()];
+                    if (!user) return;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'user-profile-card';
+                    
+                    const imgUrl = user.titlePhoto || user.avatar || 'https://userpic.codeforces.org/no-avatar.jpg';
+                    const rating = user.rating ? `${user.rating} (Max: ${user.maxRating || '?'})` : 'Unrated';
+                    
+                    let color = 'var(--text-secondary)';
+                    if (user.rating >= 2400) color = '#ff3333';
+                    else if (user.rating >= 2100) color = '#ff8c00';
+                    else if (user.rating >= 1900) color = '#aa00aa';
+                    else if (user.rating >= 1600) color = '#0000ff';
+                    else if (user.rating >= 1400) color = '#03a89e';
+                    else if (user.rating >= 1200) color = '#008000';
+
+                    const suffix = platform === 'both' ? ' <span style="font-size: 0.75rem; color: var(--text-secondary);">(CF)</span>' : '';
+
+                    card.innerHTML = `
+                        <img src="${imgUrl}" alt="${user.handle}" class="user-avatar" onerror="this.src='https://userpic.codeforces.org/no-avatar.jpg'" />
+                        <div class="user-info">
+                            <span class="user-handle" style="color: ${color}">${user.handle}${suffix}</span>
+                            <span class="user-rating">Rating: ${rating}</span>
+                        </div>
+                    `;
+                    userProfilesContainer.appendChild(card);
+                });
+            }));
         }
-    }
 
-    function renderGenericProfiles(handles) {
-        userProfilesContainer.innerHTML = '';
-        handles.forEach(handle => {
-            const card = document.createElement('div');
-            card.className = 'user-profile-card';
-            const initial = handle.charAt(0).toUpperCase();
-            card.innerHTML = `
-                <div class="user-avatar" style="display:flex; justify-content:center; align-items:center; background:#334155; font-weight:bold; color:white; font-size:1.2rem;">${initial}</div>
-                <div class="user-info">
-                    <span class="user-handle" style="color: var(--text-primary)">${handle}</span>
-                    <span class="user-rating" style="text-transform: capitalize;">${getSelectedPlatform()} User</span>
-                </div>
-            `;
-            userProfilesContainer.appendChild(card);
-        });
-        userProfilesContainer.classList.remove('hidden');
-    }
+        if (shouldFetchAc) {
+            const handles = acHandleString.split(',').map(h => h.trim()).filter(h => h);
+            promises.push((async () => {
+                for (const handle of handles) {
+                    try {
+                        let cached = profileCache.atcoder[handle.toLowerCase()];
+                        
+                        if (!cached) {
+                            let rating = 0;
+                            let maxRating = 0;
+                            let avatar = "https://img.atcoder.jp/assets/icon/avatar.png";
+                            
+                            const [historyRes, pageRes] = await Promise.all([
+                                fetch(`https://api.codetabs.com/v1/proxy/?quest=https://atcoder.jp/users/${handle}/history/json`),
+                                fetch(`https://api.codetabs.com/v1/proxy/?quest=https://atcoder.jp/users/${handle}`)
+                            ]);
+                            
+                            if (historyRes.ok) {
+                                const history = await historyRes.json();
+                                if (Array.isArray(history) && history.length > 0) {
+                                    rating = history[history.length - 1].NewRating;
+                                    let userMax = 0;
+                                    history.forEach(c => { if (c.NewRating > userMax) userMax = c.NewRating; });
+                                    maxRating = userMax;
+                                }
+                            }
 
-    function renderCodeforcesProfiles(users) {
-        userProfilesContainer.innerHTML = '';
-        users.forEach(user => {
-            const card = document.createElement('div');
-            card.className = 'user-profile-card';
-            
-            const imgUrl = user.titlePhoto || user.avatar || 'https://userpic.codeforces.org/no-avatar.jpg';
-            const rating = user.rating ? `${user.rating} (${user.rank || 'Unrated'})` : 'Unrated';
-            
-            let color = 'var(--text-secondary)';
-            if (user.rating >= 2400) color = '#ff3333';
-            else if (user.rating >= 2100) color = '#ff8c00';
-            else if (user.rating >= 1900) color = '#aa00aa';
-            else if (user.rating >= 1600) color = '#0000ff';
-            else if (user.rating >= 1400) color = '#03a89e';
-            else if (user.rating >= 1200) color = '#008000';
+                            if (pageRes.ok) {
+                                const html = await pageRes.text();
+                                const match = html.match(/<img class=['"]avatar['"] src=['"]([^'"]+)['"]/);
+                                if (match && match[1]) {
+                                    avatar = match[1];
+                                    if (avatar.startsWith('//')) avatar = 'https:' + avatar;
+                                    else if (avatar.startsWith('/')) avatar = 'https://atcoder.jp' + avatar;
+                                }
+                            }
+                            
+                            cached = { rating, maxRating, avatar };
+                            profileCache.atcoder[handle.toLowerCase()] = cached;
+                        }
 
-            card.innerHTML = `
-                <img src="${imgUrl}" alt="${user.handle}" class="user-avatar" onerror="this.src='https://userpic.codeforces.org/no-avatar.jpg'" />
-                <div class="user-info">
-                    <span class="user-handle" style="color: ${color}">${user.handle}</span>
-                    <span class="user-rating">${rating}</span>
-                </div>
-            `;
-            userProfilesContainer.appendChild(card);
-        });
-        userProfilesContainer.classList.remove('hidden');
+                        const card = document.createElement('div');
+                        card.className = 'user-profile-card';
+                        
+                        let color = 'var(--text-secondary)';
+                        if (cached.rating > 0) {
+                            if (cached.rating >= 2800) color = '#FF0000';
+                            else if (cached.rating >= 2400) color = '#FF8000';
+                            else if (cached.rating >= 2000) color = '#C0C000';
+                            else if (cached.rating >= 1600) color = '#0000FF';
+                            else if (cached.rating >= 1200) color = '#00C0C0';
+                            else if (cached.rating >= 800) color = '#008000';
+                            else if (cached.rating >= 400) color = '#804000';
+                            else color = '#808080';
+                        }
+
+                        const ratingText = cached.rating > 0 ? `${cached.rating} (Max: ${cached.maxRating})` : 'Unrated';
+                        const suffix = platform === 'both' ? ' <span style="font-size: 0.75rem; color: var(--text-secondary);">(AC)</span>' : '';
+                        
+                        card.innerHTML = `
+                            <img src="${cached.avatar}" alt="${handle}" class="user-avatar" onerror="this.src='https://img.atcoder.jp/assets/icon/avatar.png'" />
+                            <div class="user-info">
+                                <span class="user-handle" style="color: ${color}">${handle}${suffix}</span>
+                                <span class="user-rating">Rating: ${ratingText}</span>
+                            </div>
+                        `;
+                        userProfilesContainer.appendChild(card);
+                    } catch(e) { console.error(e); }
+                }
+            })());
+        }
+
+        await Promise.all(promises);
+        
+        if (userProfilesContainer.innerHTML.trim() === '') {
+             userProfilesContainer.classList.add('hidden');
+        }
     }
 
     function getSelectedDivisions(groupId) {
