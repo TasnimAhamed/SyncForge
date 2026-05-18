@@ -59,6 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const problemsEmptyState = document.getElementById('problems-empty-state');
 
     let contestHistory = [];
+    try {
+        const stored = localStorage.getItem('syncforge_contest_history');
+        if (stored) contestHistory = JSON.parse(stored);
+    } catch(e) { console.error("Error parsing history from local storage", e); }
+    
     let fetchedProblemsList = [];
     let lastFetchedHandles = "";
     let lastFetchedPlatform = "";
@@ -217,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearHistoryBtn.addEventListener('click', () => {
         contestHistory = [];
+        localStorage.removeItem('syncforge_contest_history');
         renderHistory();
     });
 
@@ -722,12 +728,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (contestHistory.length > 10) contestHistory.pop();
+        localStorage.setItem('syncforge_contest_history', JSON.stringify(contestHistory));
         renderHistory();
     }
 
     function renderHistory() {
         if (contestHistory.length === 0) {
-            historyGrid.innerHTML = '<p class="empty-history text-secondary">No history yet in this session.</p>';
+            historyGrid.innerHTML = '<p class="empty-history text-secondary">No history yet.</p>';
             clearHistoryBtn.classList.add('hidden');
             return;
         }
@@ -754,6 +761,9 @@ document.addEventListener('DOMContentLoaded', () => {
             historyGrid.appendChild(div);
         });
     }
+    
+    // Initialize history UI on load
+    renderHistory();
 
     function showError(msg) {
         errorMessage.textContent = msg;
