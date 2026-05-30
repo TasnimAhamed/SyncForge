@@ -17,7 +17,7 @@ Open `index.html` in your browser.
 *Let's learn, build, and grow together!*
 
 ### 🤝 Let's Connect
-[Codeforces Profile](https://codeforces.com/profile/tasnim07) | [LinkedIn Profile](https://www.linkedin.com/in/tasnimahmed20/) | [Facebook Profile](https://www.facebook.com/tasnim.ahmed.20)
+[[Codeforces](https://codeforces.com/profile/tasnim07)] | [[LinkedIn](https://www.linkedin.com/in/tasnimahmed20/)] | [[Facebook](https://www.facebook.com/tasnim.ahmed.20)]
 
 ## License
 MIT
